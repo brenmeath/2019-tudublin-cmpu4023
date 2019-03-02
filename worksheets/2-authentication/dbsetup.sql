@@ -1,29 +1,28 @@
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS users;
 
-CREATE EXTENSION pgcrypto;
+CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE users (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-    email TEXT NOT NULL,
-    password TEXT NOT NULL
+    email VARCHAR(128) NOT NULL,
+    password VARCHAR(128) NOT NULL
 );
 
 CREATE TABLE products (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
-    title TEXT NOT NULL,
-    price TEXT NOT NULL
+    title VARCHAR(128) NOT NULL,
+    price_euro NUMERIC(15,6) NOT NULL
 );
-
 
 -- allow faster queries during a login procedure
 CREATE UNIQUE INDEX lower_email_idx on users ((lower(email)));
 
 -- example of user creation
 INSERT INTO users (email, password) VALUES
-    ('john@example.com', crypt('sesame', gen_salt('bf', 8)));
+    ('john@mail.net', crypt('sesame', gen_salt('bf', 8)));
 
-INSERT INTO products (title, price) VALUES
+INSERT INTO products (title, price_euro) VALUES
 	('cheddar block 400g',  3.00),
 	('cheddar slices 400g',  3.20),
 	('butter 454g', 3.30),
