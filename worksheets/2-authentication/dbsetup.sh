@@ -15,4 +15,7 @@ sudo -u postgres psql -d $DB_NAME < $CUR_DIR/dbsetup.sql
 
 # we assume that the $DB_USER already exists
 echo "Granting table privileges for user \"$DB_USER\""
-sudo -u postgres psql -d $DB_NAME -c "GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE products TO $DB_USER;"
+sudo -u postgres psql \
+    -d $DB_NAME \
+    -c "GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE products TO $DB_USER;
+        GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE users TO $DB_USER;"

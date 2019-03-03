@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const Massive = require('massive');
+const morgan = require('morgan');
+const jwt = require('jsonwebtoken');
 
 const app = express();
 const port = 3000;
@@ -17,12 +19,38 @@ const massive = Massive({
 	poolSize: process.env.DB_POOLSIZE
 });
 
+app.use(morgan('dev'));
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// secret key for JWT
+app.set('secretKey', 'balloons');
+
+/* checks for existence of and verifies the client bearer token.
+ * If token is invalid or not found, we send a status 401 response.
+ */
+const verifyToken = (req, res, next) => {
+    const header = req.headers['authorization'];
+
+    if(typeof req.headers['authorization'] !== 'undefined') {
+        req.token = req.headers['authorization'].split(' ')[1];
+        jwt.verify(req.token, req.app.get('secretKey'), (err, authorizedData) => {
+            if (err) {
+                res.status(401).send();
+            } else {
+                next();
+            }
+        });
+    } else {
+        res.status(401).send();
+    }
+}
 
 app.get('/', (req, res) => {
 	let help = {
 		"Available API endpoints": {
+		"POST /gettoken": "Acquire an API access token",
 		"GET /products": "List all products",
 		"GET /products/<id>": "List product with given ID",
 		"POST /products": "Create a new product",
@@ -34,14 +62,21 @@ app.get('/', (req, res) => {
 	res.status(200).json(help);
 });
 
-app.get('/products', (req, res) => {
+app.post('/gettoken', (req, res) => {
     massive.then(db => {
-	    db.products.find({}, {
-            fields: ['id', 'title', 'price_euro']
+        db.user_login(req.body.email, req.body.password)
+        .then(dbresult => {
+            console.log(dbresult);
+            if (dbresult.length) {
+                const tok = jwt.sign({id: dbresult[0].id},
+                    req.app.get('secretKey'),
+                    {expiresIn: '1h'}
+                );
+                res.status(200).json(tok);
+            } else {
+                res.status(401).send();
+            }
         })
-	    .then(dbresult => {
-		    res.status(200).json(dbresult);
-	    })
 	    .catch((err) => {
 		    res.status(500).send();
 		    console.log(err);
@@ -53,7 +88,26 @@ app.get('/products', (req, res) => {
     });
 });
 
-app.get('/products/:id', (req, res) => {
+app.get('/products', verifyToken, (req, res) => {
+    massive.then(db => {
+        db.products.find({}, {
+            fields: ['id', 'title', 'price_euro']
+        })
+        .then(dbresult => {
+            res.status(200).json(dbresult);
+        })
+        .catch((err) => {
+            res.status(500).send();
+            console.log(err);
+        });
+    })
+    .catch((err) => {
+        res.status(500).send();
+        console.log(err);
+    });
+});
+
+app.get('/products/:id', verifyToken, (req, res) => {
     massive.then(db => {
 	    db.products.findOne(req.params.id, {
             fields: ['id', 'title', 'price_euro']
@@ -72,7 +126,7 @@ app.get('/products/:id', (req, res) => {
     });
 });
 
-app.post('/products', (req, res) => {
+app.post('/products', verifyToken, (req, res) => {
     massive.then(db => {
         // ensure that all NOT NULL columns are defined
         if (req.body.title === undefined || req.body.price_euro === undefined) {
@@ -97,9 +151,9 @@ app.post('/products', (req, res) => {
     });
 });
 
-app.put('/products/:id', (req, res) => {
+app.put('/products/:id', verifyToken, (req, res) => {
     massive.then(db => {
-        // ensure that all NOT NULL columns are defined
+        // ensure that all NOT NULL columns are definedls -
         if (req.body.title === undefined || req.body.price_euro === undefined) {
             res.status(400).send();
         } else {
@@ -111,10 +165,10 @@ app.put('/products/:id', (req, res) => {
 	            price_euro: req.body.price_euro
             })
 	        .then(dbresult => {
-		        res.status(200).json(dbresult);
+		        res.status(201).json(dbresult);
 	        })
 	        .catch((err) => {
-		        res.status(500).send();
+		        res.status(404).send();
 		        console.log(err);
 	        });
         }
@@ -125,7 +179,7 @@ app.put('/products/:id', (req, res) => {
     });
 });
 
-app.patch('/products/:id', (req, res) => {
+app.patch('/products/:id', verifyToken, (req, res) => {
     massive.then(db => {
         // ensure that all NOT NULL columns are defined
         if (req.body.title === undefined && req.body.price_euro === undefined) {
@@ -145,10 +199,10 @@ app.patch('/products/:id', (req, res) => {
             },
             newValues)
 	        .then(dbresult => {
-		        res.status(200).json(dbresult);
+		        res.status(201).json(dbresult);
 	        })
 	        .catch((err) => {
-		        res.status(500).send();
+		        res.status(404).send();
 		        console.log(err);
 	        });
         }
@@ -160,13 +214,13 @@ app.patch('/products/:id', (req, res) => {
 });
 
 
-app.delete('/products/:id', (req, res) => {
+app.delete('/products/:id', verifyToken, (req, res) => {
     massive.then(db => {
 	    db.products.destroy({
             id: req.params.id
         })
 	    .then(dbresult => {
-		    res.status(200).json(dbresult);
+		    res.status(204).json(dbresult);
 	    })
 	    .catch((err) => {
 		    res.status(404).send();

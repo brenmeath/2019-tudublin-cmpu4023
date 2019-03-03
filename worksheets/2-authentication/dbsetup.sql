@@ -1,12 +1,16 @@
+DROP FUNCTION IF EXISTS user_login(VARCHAR(128), VARCHAR(128));
+
 DROP TABLE IF EXISTS products;
 DROP TABLE IF EXISTS users;
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
+DROP EXTENSION IF EXISTS pgcrypto;
+
+CREATE EXTENSION pgcrypto;
 
 CREATE TABLE users (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     email VARCHAR(128) NOT NULL,
-    password VARCHAR(128) NOT NULL
+    pass VARCHAR(128) NOT NULL
 );
 
 CREATE TABLE products (
@@ -19,7 +23,7 @@ CREATE TABLE products (
 CREATE UNIQUE INDEX lower_email_idx on users ((lower(email)));
 
 -- example of user creation
-INSERT INTO users (email, password) VALUES
+INSERT INTO users (email, pass) VALUES
     ('john@mail.net', crypt('sesame', gen_salt('bf', 8)));
 
 INSERT INTO products (title, price_euro) VALUES
@@ -43,3 +47,14 @@ INSERT INTO products (title, price_euro) VALUES
     ('carrots 2kg', 0.99),
     ('battered cod 500g', 2.00),
     ('marmalade', 1.40);
+
+CREATE FUNCTION user_login(v_email VARCHAR(128), v_password VARCHAR(128))
+RETURNS TABLE(id UUID)
+AS $$
+BEGIN
+    RETURN QUERY
+        SELECT users.id
+        FROM users
+        WHERE users.email=v_email AND users.pass=crypt(v_password, users.pass);
+END;
+$$ LANGUAGE plpgsql;
