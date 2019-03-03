@@ -25,8 +25,8 @@ CREATE TABLE products (
 CREATE UNIQUE INDEX lower_email_idx on users ((lower(email)));
 
 -- example of user creation
-INSERT INTO users (email, pass) VALUES
-    ('john@mail.net', crypt('sesame', gen_salt('bf', 8)));
+INSERT INTO users (email, pass, secret_key) VALUES
+    ('john@mail.net', crypt('sesame', gen_salt('bf', 8)), 'mysecret');
 
 INSERT INTO products (title, price_euro) VALUES
 	('cheddar block 400g',  3.00),
