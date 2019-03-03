@@ -40,7 +40,133 @@ app.get('/products', (req, res) => {
             fields: ['id', 'title', 'price_euro']
         })
 	    .then(dbresult => {
-		    res.status(200).json(dbresult)
+		    res.status(200).json(dbresult);
+	    })
+	    .catch((err) => {
+		    res.status(500).send();
+		    console.log(err);
+	    });
+    })
+    .catch((err) => {
+	    res.status(500).send();
+	    console.log(err);
+    });
+});
+
+app.get('/products/:id', (req, res) => {
+    massive.then(db => {
+	    db.products.findOne(req.params.id, {
+            fields: ['id', 'title', 'price_euro']
+        })
+	    .then(dbresult => {
+		    res.status(200).json(dbresult);
+	    })
+	    .catch((err) => {
+		    res.status(404).send();
+		    console.log(err);
+	    });
+    })
+    .catch((err) => {
+	    res.status(500).send();
+	    console.log(err);
+    });
+});
+
+app.post('/products', (req, res) => {
+    massive.then(db => {
+        // ensure that all NOT NULL columns are defined
+        if (req.body.title === undefined || req.body.price_euro === undefined) {
+            res.status(400).send();
+        } else {
+	        db.products.insert({
+	            title: req.body.title,
+	            price_euro: req.body.price_euro
+            })
+	        .then(dbresult => {
+		        res.status(201).json(dbresult);
+	        })
+	        .catch((err) => {
+		        res.status(500).send();
+		        console.log(err);
+	        });
+        }
+    })
+    .catch((err) => {
+	    res.status(500).send();
+	    console.log(err);
+    });
+});
+
+app.put('/products/:id', (req, res) => {
+    massive.then(db => {
+        // ensure that all NOT NULL columns are defined
+        if (req.body.title === undefined || req.body.price_euro === undefined) {
+            res.status(400).send();
+        } else {
+	        db.products.update({
+	            id: req.params.id
+            },
+            {
+	            title: req.body.title,
+	            price_euro: req.body.price_euro
+            })
+	        .then(dbresult => {
+		        res.status(200).json(dbresult);
+	        })
+	        .catch((err) => {
+		        res.status(500).send();
+		        console.log(err);
+	        });
+        }
+    })
+    .catch((err) => {
+	    res.status(500).send();
+	    console.log(err);
+    });
+});
+
+app.patch('/products/:id', (req, res) => {
+    massive.then(db => {
+        // ensure that all NOT NULL columns are defined
+        if (req.body.title === undefined && req.body.price_euro === undefined) {
+            res.status(400).send();
+        } else {
+            // figure out which columns are to be updated
+            let newValues = {};
+            if (req.body.title !== undefined) {
+                newValues.title = req.body.title;
+            }
+            if (req.body.price_euro !== undefined) {
+                newValues.price_euro = req.body.price_euro;
+            }
+
+	        db.products.update({
+	            id: req.params.id
+            },
+            newValues)
+	        .then(dbresult => {
+		        res.status(200).json(dbresult);
+	        })
+	        .catch((err) => {
+		        res.status(500).send();
+		        console.log(err);
+	        });
+        }
+    })
+    .catch((err) => {
+	    res.status(500).send();
+	    console.log(err);
+    });
+});
+
+
+app.delete('/products/:id', (req, res) => {
+    massive.then(db => {
+	    db.products.destroy({
+            id: req.params.id
+        })
+	    .then(dbresult => {
+		    res.status(200).json(dbresult);
 	    })
 	    .catch((err) => {
 		    res.status(404).send();
