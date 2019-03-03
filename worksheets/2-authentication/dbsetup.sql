@@ -10,7 +10,9 @@ CREATE EXTENSION pgcrypto;
 CREATE TABLE users (
     id UUID NOT NULL DEFAULT gen_random_uuid() PRIMARY KEY,
     email VARCHAR(128) NOT NULL,
-    pass VARCHAR(128) NOT NULL
+    pass VARCHAR(128) NOT NULL,
+    access_token VARCHAR(20),
+    secret_key VARCHAR(40)
 );
 
 CREATE TABLE products (
